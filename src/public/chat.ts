@@ -11,6 +11,32 @@ const $messages = document.querySelector('#messages')
 //TEMPLATES
 const messageTemplate = document.querySelector('#message-template')?.innerHTML
 const locationMessageTemplate = document.querySelector('#location-message-template')?.innerHTML
+const sideBarTemplate=document.querySelector('#sidebar-template')?.innerHTML
+//Options
+//@ts-ignore
+const{username,room}:{username:string,room:string}=Qs.parse(location.search,{ignoreQueryPrefix:true})
+
+const autoScroll=()=>{
+    //get last message
+    const $lastMessage:any=$messages?.lastElementChild
+    //get height of last message
+    //@ts-ignore
+    const lastMessageStyles=getComputedStyle($lastMessage)
+    const lastMessageBottomMargin=parseInt(lastMessageStyles.marginBottom)
+    const lastMessageHeight=$lastMessage?.offsetHeight+lastMessageBottomMargin
+    //messages visible height
+    //@ts-ignore
+    const messagesVisibleHeight=$messages?.offsetHeight
+    //messages container height
+    const messagesContainerHeight=$messages?.scrollHeight
+    //how far have I scrolled?
+    const scrollOffset=$messages?.scrollTop+messagesVisibleHeight
+    //@ts-ignore
+    if (messagesContainerHeight-lastMessageHeight<=scrollOffset){
+        //@ts-ignore
+        $messages?.scrollTop=messagesContainerHeight
+    }
+}
 
 //EVENT LISTENERS
 $messageForm?.addEventListener('submit', (e) => {
@@ -45,22 +71,37 @@ $sendLocationButton?.addEventListener('click', () => {
 socket.on('welcomeMessage', (welcomeMessageToDisplay:string) => {
     console.log(welcomeMessageToDisplay)
 })
-socket.on('message', ({text:messageReceived,createdAt:timeStamp}:{text:string,createdAt:number}) => {
+socket.on('message', ({username,text:messageReceived,createdAt:timeStamp}:{username:string,text:string,createdAt:number}) => {
     const html = Mustache.render(messageTemplate, {
         message: messageReceived,
         //@ts-ignore
-        createdAt:moment(timeStamp).format('h:mm A')
+        createdAt:moment(timeStamp).format('h:mm A'),
+        username
     })
     $messages?.insertAdjacentHTML('beforeend', html)
+    autoScroll()
 })
-socket.on('locationUrl', ({url,createdAt:timeStamp}:{url:string,createdAt:number}) => {
+socket.on('locationUrl', ({username,url,createdAt:timeStamp}:{username:string,url:string,createdAt:number}) => {
     const html = Mustache.render(locationMessageTemplate, {
         //@ts-ignore
         createdAt:moment(timeStamp).format('h:mm A'),
-        url
+        url,
+        username
     })
     $messages?.insertAdjacentHTML('beforeend', html)
+    autoScroll()
 })
-socket.on('notification', (notification:string) => {
-    console.log(notification)
-})
+
+socket.emit('join',{username,room},(error: any)=>{
+    if (!error) return
+    alert(error)
+    location.href='/'
+}) 
+socket.on('roomData',({room,users}:{room:string,users:any[]})=>{
+    const html=Mustache.render(sideBarTemplate,{
+        room,
+        users
+    })
+    //@ts-ignore
+    document.querySelector('#sidebar')?.innerHTML=html
+})   

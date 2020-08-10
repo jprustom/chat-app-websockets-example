@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "dev": "nodemon out/server/server.js",
-        "statics": "copyfiles -f ./src/public/*.js ./src/public/*.html ./out/public"
+        "statics": "copyfiles -u 1 ./src/public/*/* ./src/public/*.html ./out/"
     },
     "keywords": [],
     "author": "",
